@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据分类展示系统</title>
+    <style>
+        :root {
+            --primary-color: #1890ff;
+            --bg-color: #f0f2f5;
+            --card-radius: 8px;
+            --transition-duration: 0.2s;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, Arial, sans-serif;
+            background: var(--bg-color);
+            -webkit-font-smoothing: antialiased;
+            text-rendering: optimizeLegibility;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* 增强型导航栏 */
+        .sidebar {
+            width: 100%;
+            background: #fff;
+            padding: 12px 0;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            overflow-x: auto;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .sidebar::after {
+            content: "";
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 30px;
+            background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,1) 100%);
+            pointer-events: none;
+        }
+
+        .sidebar h2 {
+            font-size: clamp(16px, 4vw, 18px);
+            padding: 0 12px;
+            margin-bottom: 12px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .theme-scroll {
+            display: flex;
+            padding: 0 12px;
+            gap: 8px;
+        }
+
+        .theme-btn {
+            flex: 0 0 auto;
+            min-width: max-content;
+            padding: 10px 16px;
+            border: none;
+            border-radius: 24px;
+            background: #f5f5f5;
+            color: #666;
+            font-size: clamp(13px, 3.5vw, 14px);
+            line-height: 1.4;
+            transition: all var(--transition-duration) ease;
+            cursor: pointer;
+        }
+
+        .theme-btn.active {
+            background: var(--primary-color);
+            color: white;
+            font-weight: 500;
+            box-shadow: 0 2px 6px rgba(24,144,255,0.3);
+        }
+
+        /* 优化内容区域 */
+        .content-area {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+        }
+
+        .content-card {
+            background: white;
+            border-radius: var(--card-radius);
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            transition: transform 0.2s ease;
+        }
+
+        .content-card:active {
+            transform: scale(0.98);
+        }
+
+        .content-card h3 {
+            font-size: clamp(14px, 4vw, 15px);
+            line-height: 1.6;
+            color: #333;
+            margin-bottom: 12px;
+            hyphens: auto;
+        }
+
+        /* 增强媒体容器 */
+        .media-container {
+            display: grid;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .video-player {
+            width: 100%;
+            height: auto;
+            border-radius: calc(var(--card-radius) + 2px);
+            aspect-ratio: 16/9;
+            background: #000;
+            object-fit: contain;
+        }
+
+        /* 桌面适配 */
+        @media (min-width: 768px) {
+            :root {
+                --card-radius: 12px;
+            }
+            
+            .container {
+                flex-direction: row;
+            }
+            
+            .sidebar {
+                width: 280px;
+                padding: 20px;
+                overflow-x: visible;
+            }
+            
+            .theme-scroll {
+                display: block;
+                padding: 0;
+            }
+            
+            .theme-btn {
+                width: 100%;
+                margin: 8px 0;
+                border-radius: 8px;
+            }
+            
+            .content-area {
+                padding: 24px;
+            }
+        }
+
+        /* 暗色模式适配 */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #1a1a1a;
+                --primary-color: #409fff;
+            }
+            
+            body {
+                color: #e6e6e6;
+            }
+            
+            .sidebar {
+                background: #2a2a2a;
+            }
+            
+            .theme-btn:not(.active) {
+                background: #333;
+                color: #ccc;
+            }
+            
+            .content-card {
+                background: #2a2a2a;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            }
+        }
+    </style></head>
+<body>
+    <div class="container">
+        <!-- 左侧主题导航 -->
+        <div class="sidebar">
+            <h2>主题分类</h2>
+            <div id="themeList"></div>
+        </div>
+
+        <!-- 右侧内容展示 -->
+        <div class="content-area" id="contentArea"></div>
+    </div>
+
+    <script>
+        // 模拟数据
+        const themeData = [
+            {
+                id: 1,
+                title: "主题先导：为什么要学表演",
+                articles: ["1.培养宝贝气质，不像播音一样必须一样的动作规定好的动作，而是根据宝贝自己的特点来设计", "2.培养宝贝的创造力逻辑能力，情感表达，不仅对口语表达有帮助，还对以后语文文科的学习非常有帮助，写作能力有所提升","3.现在的宝贝压力很大，书包都那么重，都不知道是天天怎么背着上学的学习了表演之后知道了怎么表达情绪怎么表达感情有一个情绪的发泄口心理的发泄口","4.表演能够帮助宝贝肢体协调","5.现在的老师说是一视同仁，其实是更能够关注到能够解放天性的宝贝，能够多跟老师沟通多向老师提问题的宝贝，所以这个是真的能在生活中改变宝贝的","6.表演讲究一个解放	天性，就是让宝贝在陌生的环境不管有多少陌生人看着他，他都有表达欲有表现欲","7.表演上的活灵活现对人际关系有很大的帮助，现在的社会不仅是要学习过硬，情商也是占很大一部分的喔","8.在性格培养上也能帮助到宝贝，比如说买两个冰淇淋能够都半价，有的人选择不参加优惠活动，有的人选择买两个自己吃两个肚子疼，但有的人就会选择找陌生的身边人去问是否需求这个东西，这是人生的不同选择，其实看似是买冰淇淋一件小事，却可以以小见大，甚至是如果勇敢迈出问别人的这一步被拒绝了之后，不是自己内耗或者想是否自己不应该做这个事，是否自己做错了，而是觉得单纯的可能别人就是不需要等"],
+                images: [""],
+                videos: ["https://zyzdhairr.github.io/zhaoyangranran.github.io/1d2a660b3d7b7ead44f8cf74ee0809f9.mp4","https://zyzdhairr.github.io/zhaoyangranran.github.io/203320e312971d93b8215baa9caa370c.mp4","https://zyzdhairr.github.io/zhaoyangranran.github.io/61048ef7a102f87db876f745d63e576d.mp4","https://zyzdhairr.github.io/zhaoyangranran.github.io/8c382d3962217aec90f25dc5daf65982.mp4"]
+            },
+            {
+                id: 2,
+                title: "拍摄内容：古韵寻踪之正定秧歌戏探秘",
+                articles: ["阳阳：“这正定秧歌戏太好玩，咱去正定找秘密！”<br>悦悦：“咱不太懂，能找到啥呀？”<br>轩轩：“别怕，咱肯定能揭开它的秘密！”","画面：孩子们进广场，见小虎、小萱、小辉三个本地孩子玩耍。小虎哼唱秧歌戏曲调，做简单动作。阳阳眼睛一亮冲过去。<br>台词<br>阳阳（兴奋讲）：“讲个小孩用智慧勇气守护古城的故事。”<br>轩轩（大声旁白）：“在正定古城，有个守护故事。”<br>阳阳（迈十字步上台，英姿飒爽）：“我是古城小英雄，守护古城！”<br>悦悦（蹦跳跟上）：“小英雄，我来帮你！”<br>小萱（挥舞手臂）：“还有我！”<br>小辉（击退“坏人”，欢呼）：“赶走坏人，古城安全啦！”<br>小虎（激动跳起来）：“我们做到啦！”","阳阳：秧歌魅力真不小,<br>悦悦：大家携手来创造,<br>轩轩：故事里面情谊绕,<br>合：奇妙！<br>小虎：古城故事心中记，<br>小萱：秧歌传承齐努力，<br>小辉：未来精彩不停息，<br>合：走起！"],
+            },
+            {
+                id: 3,
+                title: "第一节课趣启征程，探秘秧歌剧情",
+                articles: ["上课内容：","趣味导入：老师头戴一顶具有正定特色的花头巾，身着色彩鲜艳、带有传统图案的服装走进教室，手中拿着一个小巧的正定秧歌戏的道具——小铜锣，一进教室就敲起铜锣，发出清脆声响，吸引孩子们注意。接着，播放一段充满活力的正定秧歌戏表演视频，视频里演员们夸张的动作、欢快的节奏瞬间点燃孩子们的热情。播放结束后，老师分享一些关于正定秧歌戏的奇闻轶事，比如曾经有一场秧歌戏表演吸引了十里八乡的人，大家都放下手中农活赶来观看，让孩子们对正定秧歌戏充满好奇与向往。", "剧情讲解：老师以生动活泼、绘声绘色的方式，像讲述冒险童话一样把“古韵寻踪之正定秧歌戏探秘”的剧情娓娓道来。在讲述过程中，老师配合丰富的肢体动作，比如模仿孩子们走进广场时的好奇张望，看到本地孩子哼唱秧歌戏时的惊喜表情。讲到阳阳说“这正定秧歌戏太好玩，咱去正定找秘密！”时，老师做出兴奋地跳起来、握拳加油的动作；讲悦悦疑惑时，老师歪着头、皱着眉。通过这些动作，让孩子们更直观地理解剧情。","台词熟悉：将精心打印好的台词分发给小演员们，台词纸张设计成具有古城元素的图案。老师先富有感情地逐句朗读，遇到一些难读的字，如“韵（yùn）”“腔（qiāng）”等，特别标注拼音并详细讲解。朗读完后，组织孩子们分组，两两一组，互相读台词给对方听，在这个过程中熟悉台词内容，同时老师在教室里巡回走动，倾听孩子们的朗读，及时纠正发音错误。"],
+            },
+	    {
+                id: 4,
+                title: "第二节课：雕琢细节，融入角色演绎",
+                articles: ["上课内容：","台词讲解：老师一句一句深入剖析台词，引导小演员们理解每句台词背后所蕴含的丰富情感与深层含义。比如讲解阳阳说“哇，你们会唱秧歌戏！太酷啦！”这句台词时，着重分析阳阳内心对秧歌戏的惊叹与羡慕之情，让小演员们明白要用充满惊喜、兴奋的语气来表达。对于“我们想找秧歌戏秘密，找好久没头绪。”这句，要体现出轩轩等人的执着与困惑", "情绪情感、表情动作与台词融合：针对每一句台词，老师详细教导小演员们搭配与之相契合的表情和动作。当小辉说“秧歌戏可有讲究。动作和唱腔不一样。”时，老师示范一边摇头晃脑，一边用手指比划着讲解动作和唱腔的不同，让小演员们模仿。小演员们练习时，老师一对一地进行指导，纠正他们表情不到位、动作不自然的地方。例如，有的小演员在表现悦悦点头思考时，点头动作过于僵硬，老师会耐心引导其放松，自然地做出思考的神态和动作。","组织小演员们分组进行表演练习，从孩子们走进广场遇到本地孩子，一直演绎到探讨秧歌戏的情节。在练习过程中，老师巡回观察，时刻关注小演员们的表现。如果发现某个小组在角色互动上不够自然，比如眼神交流少，老师会及时指出并给予建议，让小演员们不断完善表演，增强表演的连贯性和真实性。"],
+	    },
+	    {
+                id: 5,
+                title: "第三节课：深化表演，掌握三句半",
+                articles: ["上课内容：","台词背诵：通过“台词大接龙”的游戏检查小演员们之前台词的背诵情况。老师说出一句台词的上半句，随机挑选小演员接下半句，接对的小演员可以指定下一个同学继续接龙，接错的小演员要表演一个与秧歌戏相关的小动作，比如简单的秧歌步。对于背诵有困难的孩子，老师采用情景联想的方法帮助他们记忆，比如将台词与剧情中的某个场景联系起来，让他们更容易记住。", "三句半学习：向小演员们介绍三句半这种独特的表演形式，通过播放一些节奏明快、幽默风趣的三句半表演视频，让小演员们直观感受其特点和魅力。随后，将表演最后的合词部分改编成三句半形式，如“阳阳：秧歌魅力真不小，悦悦：大家携手来创造，轩轩：故事里面情谊绕，合：奇妙！”老师详细讲解三句半的节奏把握，用拍手、跺脚的方式为孩子们示范，让他们体会在“小”“造”“绕”“妙”等押韵字上要加重语气，形成鲜明的节奏。","三句半情绪调整：根据整个剧情欢快、积极的氛围，老师教导小演员们在表演三句半时要展现出极度兴奋、热情洋溢的情绪。老师亲自示范，用夸张的表情、洪亮的声音和有力的动作来诠释这种情绪，带动小演员们进入状态。比如，在说“奇妙！”时，老师双手高举，脸上绽放出灿烂的笑容，声音拖长且充满激情。让小演员们模仿练习，不断调整自己的情绪表达。","三句半背诵：让小演员们反复练习三句半部分，先一句一句地背诵，熟练后再连贯起来背诵。在背诵过程中，不断强化节奏和情绪的把握，确保小演员们不仅能熟练背诵台词，还能准确地按照节奏和情绪要求进行表演。老师在旁边监督指导，及时纠正节奏错误和情绪不到位的地方。"],
+	    },
+	    {
+                id: 6,
+                title: "第四节课：全面打磨，从容迎接拍摄",
+                articles: ["上课内容：", "整体排练：组织小演员们进行完整的表演排练，从开场孩子们充满期待地走进广场，到中间深入探索秧歌戏、演绎守护古城故事，再到最后的三句半表演，每个环节都进行细致入微的打磨。老师关注小演员们之间的走位，确保他们在舞台上的位置合理，不会出现遮挡或碰撞的情况。同时，注重台词、表情、动作的整体协调，比如在阳阳讲述守护古城故事时，其他小演员们的表情和动作要与之相呼应，表现出专注和支持。根据排练中的实际情况，对表演进行及时微调，让表演更加流畅自然，富有感染力。","拍摄流程熟悉：向小演员们详细介绍拍摄的流程和注意事项。通过图片和简单的示意图，让孩子们了解拍摄场地的布局，讲解拍摄的先后顺序，比如先拍摄全景，再拍摄特写。教导孩子们如何面对镜头，告诉他们要保持眼神自然、表情生动，在镜头前展现出最好的状态。然后进行模拟拍摄，让孩子们在模拟的拍摄环境中体验拍摄的感觉，适应镜头。在模拟拍摄过程中，老师根据孩子们的表现，及时给予反馈和指导，帮助他们克服面对镜头的紧张感。"],
+	    }
+
+
+
+            // 可继续添加更多主题...
+        ];
+
+        // 初始化
+        function init() {
+            renderThemes();
+            loadThemeContent(1); // 默认加载第一个主题
+        }
+
+        // 渲染主题列表
+        function renderThemes() {
+            const themeList = document.getElementById('themeList');
+            themeData.forEach(theme => {
+                const button = document.createElement('button');
+                button.className = 'theme-btn';
+                button.textContent = theme.title;
+                button.onclick = () => {
+                    document.querySelectorAll('.theme-btn').forEach(btn => 
+                        btn.classList.remove('active'));
+                    button.classList.add('active');
+                    loadThemeContent(theme.id);
+                }
+                themeList.appendChild(button);
+            });
+        }
+
+        // 加载主题内容
+        function loadThemeContent(themeId) {
+            const theme = themeData.find(t => t.id === themeId);
+            const contentArea = document.getElementById('contentArea');
+            contentArea.innerHTML = '';
+
+            // 创建文章内容
+            theme.articles.forEach(article => {
+                const articleDiv = document.createElement('div');
+                articleDiv.className = 'content-card';
+                articleDiv.innerHTML = `
+                    <h3>${article}</h3>
+                    <p></p>
+                `;
+                contentArea.appendChild(articleDiv);
+            });
+
+            // 创建媒体内容
+            const mediaDiv = document.createElement('div');
+            mediaDiv.className = 'content-card';
+            mediaDiv.innerHTML = `
+                <h3>多媒体资料</h3>
+                <div class="media-container">
+                    ${theme.images.map(img => `
+                        <img src="${img}" class="content-image" alt="">
+                    `).join('')}
+                    ${theme.videos.map(video => `
+                        <video controls class="video-player">
+                            <source src="${video}" type="video/mp4">
+                            您的浏览器不支持视频播放
+                        </video>
+                    `).join('')}
+                </div>
+            `;
+            contentArea.appendChild(mediaDiv);
+        }
+
+        // 启动程序
+        init();
+    </script>
+</body>
+</html>

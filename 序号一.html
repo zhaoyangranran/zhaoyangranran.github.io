@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据分类展示系统</title>
+    <style>
+        :root {
+            --primary-color: #1890ff;
+            --bg-color: #f0f2f5;
+            --card-radius: 8px;
+            --transition-duration: 0.2s;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, Arial, sans-serif;
+            background: var(--bg-color);
+            -webkit-font-smoothing: antialiased;
+            text-rendering: optimizeLegibility;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* 增强型导航栏 */
+        .sidebar {
+            width: 100%;
+            background: #fff;
+            padding: 12px 0;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            overflow-x: auto;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .sidebar::after {
+            content: "";
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 30px;
+            background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,1) 100%);
+            pointer-events: none;
+        }
+
+        .sidebar h2 {
+            font-size: clamp(16px, 4vw, 18px);
+            padding: 0 12px;
+            margin-bottom: 12px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .theme-scroll {
+            display: flex;
+            padding: 0 12px;
+            gap: 8px;
+        }
+
+        .theme-btn {
+            flex: 0 0 auto;
+            min-width: max-content;
+            padding: 10px 16px;
+            border: none;
+            border-radius: 24px;
+            background: #f5f5f5;
+            color: #666;
+            font-size: clamp(13px, 3.5vw, 14px);
+            line-height: 1.4;
+            transition: all var(--transition-duration) ease;
+            cursor: pointer;
+        }
+
+        .theme-btn.active {
+            background: var(--primary-color);
+            color: white;
+            font-weight: 500;
+            box-shadow: 0 2px 6px rgba(24,144,255,0.3);
+        }
+
+        /* 优化内容区域 */
+        .content-area {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+        }
+
+        .content-card {
+            background: white;
+            border-radius: var(--card-radius);
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            transition: transform 0.2s ease;
+        }
+
+        .content-card:active {
+            transform: scale(0.98);
+        }
+
+        .content-card h3 {
+            font-size: clamp(14px, 4vw, 15px);
+            line-height: 1.6;
+            color: #333;
+            margin-bottom: 12px;
+            hyphens: auto;
+        }
+
+        /* 增强媒体容器 */
+        .media-container {
+            display: grid;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .video-player {
+            width: 100%;
+            height: auto;
+            border-radius: calc(var(--card-radius) + 2px);
+            aspect-ratio: 16/9;
+            background: #000;
+            object-fit: contain;
+        }
+
+        /* 桌面适配 */
+        @media (min-width: 768px) {
+            :root {
+                --card-radius: 12px;
+            }
+            
+            .container {
+                flex-direction: row;
+            }
+            
+            .sidebar {
+                width: 280px;
+                padding: 20px;
+                overflow-x: visible;
+            }
+            
+            .theme-scroll {
+                display: block;
+                padding: 0;
+            }
+            
+            .theme-btn {
+                width: 100%;
+                margin: 8px 0;
+                border-radius: 8px;
+            }
+            
+            .content-area {
+                padding: 24px;
+            }
+        }
+
+        /* 暗色模式适配 */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #1a1a1a;
+                --primary-color: #409fff;
+            }
+            
+            body {
+                color: #e6e6e6;
+            }
+            
+            .sidebar {
+                background: #2a2a2a;
+            }
+            
+            .theme-btn:not(.active) {
+                background: #333;
+                color: #ccc;
+            }
+            
+            .content-card {
+                background: #2a2a2a;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            }
+        }
+    </style></head>
+<body>
+    <div class="container">
+        <!-- 左侧主题导航 -->
+        <div class="sidebar">
+            <h2>主题分类</h2>
+            <div id="themeList"></div>
+        </div>
+
+        <!-- 右侧内容展示 -->
+        <div class="content-area" id="contentArea"></div>
+    </div>
+
+    <script>
+        // 模拟数据
+        const themeData = [
+            {
+                id: 1,
+                title: "主题先导：为什么要学表演",
+                articles: ["1.培养宝贝气质，不像播音一样必须一样的动作规定好的动作，而是根据宝贝自己的特点来设计", "2.培养宝贝的创造力逻辑能力，情感表达，不仅对口语表达有帮助，还对以后语文文科的学习非常有帮助，写作能力有所提升","3.现在的宝贝压力很大，书包都那么重，都不知道是天天怎么背着上学的学习了表演之后知道了怎么表达情绪怎么表达感情有一个情绪的发泄口心理的发泄口","4.表演能够帮助宝贝肢体协调","5.现在的老师说是一视同仁，其实是更能够关注到能够解放天性的宝贝，能够多跟老师沟通多向老师提问题的宝贝，所以这个是真的能在生活中改变宝贝的","6.表演讲究一个解放	天性，就是让宝贝在陌生的环境不管有多少陌生人看着他，他都有表达欲有表现欲","7.表演上的活灵活现对人际关系有很大的帮助，现在的社会不仅是要学习过硬，情商也是占很大一部分的喔","8.在性格培养上也能帮助到宝贝，比如说买两个冰淇淋能够都半价，有的人选择不参加优惠活动，有的人选择买两个自己吃两个肚子疼，但有的人就会选择找陌生的身边人去问是否需求这个东西，这是人生的不同选择，其实看似是买冰淇淋一件小事，却可以以小见大，甚至是如果勇敢迈出问别人的这一步被拒绝了之后，不是自己内耗或者想是否自己不应该做这个事，是否自己做错了，而是觉得单纯的可能别人就是不需要等"],
+                images: [""],
+                videos: ["https://zyzdhairr.github.io/zhaoyangranran.github.io/1d2a660b3d7b7ead44f8cf74ee0809f9.mp4","https://zyzdhairr.github.io/zhaoyangranran.github.io/203320e312971d93b8215baa9caa370c.mp4","https://zyzdhairr.github.io/zhaoyangranran.github.io/61048ef7a102f87db876f745d63e576d.mp4","https://zyzdhairr.github.io/zhaoyangranran.github.io/8c382d3962217aec90f25dc5daf65982.mp4"]
+            },
+            {
+                id: 2,
+                title: "拍摄内容：戏精”的诞生",
+                articles: ["小摊主（举起一个捏面人）：快来看，超可爱的捏面人！<br>小顾客（拿起捏面人）：太贵啦，便宜点！<br>小绣女：这捏面人是咱这特色，能留着纪念。<br>小文人：对呀，是传统手艺，很有意义。<br>小画童：面人做得多精致，每个都好看。<br>小邮差：带着它，就像带着咱这的特色。","小绣女身份转变小绣女：实不相瞒，我家里很有钱，你们这样吵架我不资助啦<br>小摊主：哇塞，那投我的摊，我进好货！<br>小顾客：我叫朋友来！<br>小文人：我写好话宣传！<br>小画童：我画漂亮画宣传！<br>小邮差：我去把你们的故事和画传遍天下！","欢快收尾<br>小摊主：大伙使劲往前冲，<br>小顾客：不再别扭乐无穷，<br>小绣女：携手齐心向前行，<br>小文人：集市添彩韵更浓，<br>小画童：画美招来人潮涌，<br>小邮差：喜讯频传乐满篷！<br>合：超成功！"],
+            },
+            {
+                id: 3,
+                title: "第一节课：欢乐开场，走进剧情",
+                articles: ["上课内容：","趣味导入：老师戴着一个夸张的捏面人角色头饰走进教室，向小演员们展示一些精美的捏面人图片和视频，讲述捏面人这一传统手艺背后的有趣小故事，比如某位民间艺人凭借捏面人手艺走遍大江南北的经历，激发小演员们对本次表演主题的兴趣。", "剧情讲解：以生动有趣的方式，像讲故事一样把整个“戏精”6人捏面人的剧情讲给小演员们听，一边讲一边用简单的动作比划，让孩子们对故事有清晰的理解。例如，在讲到小顾客嫌贵时，老师做出皱眉、摆手的动作；讲小绣女表明身份时，做出骄傲的姿态。","台词熟悉：将台词打印出来分发给小演员，先带着大家逐句朗读，把不认识的字标注拼音并讲解意思。然后分组让孩子们互相读台词给对方听，初步熟悉台词内容。"],
+            },
+	    {
+                id: 4,
+                title: "第二节课：雕琢细节，融入表演",
+                articles: ["上课内容：","台词讲解：一句一句分析台词，让小演员理解每句台词所表达的情感和含义。比如“太贵啦，便宜点！”这句台词，要表现出小顾客觉得价格不合理时的不满和想要砍价的急切心情。", "情绪情感、表情动作与台词融合：针对每句台词，教导小演员们搭配相应的表情和动作。例如小画童说“面人做得多精致，每个都好看。”时，要做出眼睛放光、仔细欣赏面人的动作，脸上露出赞叹的表情。然后让小演员们自己练习，老师逐个指导纠正。","练习：组织小演员们分组进行表演练习，完整地演绎从开始到小绣女身份转变前的剧情。在练习过程中，老师巡回观察，及时指出问题并给予建议，让小演员们不断完善表演。"],
+	    },
+	    {
+                id: 5,
+                title: "第三节课：深化表演，掌握三句半",
+                articles: ["上课内容：","台词背诵：检查小演员们之前台词的背诵情况，通过接龙、分组比赛等方式，激励孩子们熟练背诵台词。对于背诵有困难的孩子，老师单独辅导，帮助他们找到记忆的方法。", "三句半学习：向小演员们介绍三句半这种表演形式，讲解其特点和节奏。然后将最后的合词部分改编成三句半的形式，教孩子们如何把握节奏和韵律。例如，“小摊主：大伙使劲往前冲，小顾客：不再别扭乐无穷，小绣女：携手齐心向前行”，在“冲”“穷”“行”等字上加重语气，形成节奏。","三句半情绪调整：根据剧情的欢快氛围，教导小演员们在表演三句半时要展现出兴奋、积极的情绪。通过示范和引导，让孩子们明白如何用声音和表情传递这种情绪。","三句半背诵：让小演员们反复练习三句半部分，直至熟练背诵，并能准确把握节奏和情绪。"],
+	    },
+	    {
+                id: 6,
+                title: "第四节课：整体打磨，迎接拍摄",
+                articles: ["上课内容：", "整体排练：组织小演员们进行完整的表演排练，从开始到结束，每个环节都细致打磨。包括演员之间的走位、配合，以及台词、表情、动作的整体协调。在排练过程中，根据实际情况对表演进行微调，让表演更加流畅自然。","拍摄流程熟悉：向小演员们介绍拍摄的流程和注意事项，比如拍摄的顺序、如何面对镜头、拍摄时需要保持的状态等。让孩子们提前有心理准备，在拍摄时能够更加从容。然后进行模拟拍摄，让孩子们体验拍摄的感觉，适应镜头。"],
+	    }
+
+
+
+            // 可继续添加更多主题...
+        ];
+
+        // 初始化
+        function init() {
+            renderThemes();
+            loadThemeContent(1); // 默认加载第一个主题
+        }
+
+        // 渲染主题列表
+        function renderThemes() {
+            const themeList = document.getElementById('themeList');
+            themeData.forEach(theme => {
+                const button = document.createElement('button');
+                button.className = 'theme-btn';
+                button.textContent = theme.title;
+                button.onclick = () => {
+                    document.querySelectorAll('.theme-btn').forEach(btn => 
+                        btn.classList.remove('active'));
+                    button.classList.add('active');
+                    loadThemeContent(theme.id);
+                }
+                themeList.appendChild(button);
+            });
+        }
+
+        // 加载主题内容
+        function loadThemeContent(themeId) {
+            const theme = themeData.find(t => t.id === themeId);
+            const contentArea = document.getElementById('contentArea');
+            contentArea.innerHTML = '';
+
+            // 创建文章内容
+            theme.articles.forEach(article => {
+                const articleDiv = document.createElement('div');
+                articleDiv.className = 'content-card';
+                articleDiv.innerHTML = `
+                    <h3>${article}</h3>
+                    <p></p>
+                `;
+                contentArea.appendChild(articleDiv);
+            });
+
+            // 创建媒体内容
+            const mediaDiv = document.createElement('div');
+            mediaDiv.className = 'content-card';
+            mediaDiv.innerHTML = `
+                <h3>多媒体资料</h3>
+                <div class="media-container">
+                    ${theme.images.map(img => `
+                        <img src="${img}" class="content-image" alt="">
+                    `).join('')}
+                    ${theme.videos.map(video => `
+                        <video controls class="video-player">
+                            <source src="${video}" type="video/mp4">
+                            您的浏览器不支持视频播放
+                        </video>
+                    `).join('')}
+                </div>
+            `;
+            contentArea.appendChild(mediaDiv);
+        }
+
+        // 启动程序
+        init();
+    </script>
+</body>
+</html>
